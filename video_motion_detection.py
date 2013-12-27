@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 
+# Moving objects that are smaller than this number are discarded
+# The number is a fraction of width or height
+MIN_MOVING_OBJECT_SIZE_PERC = 0.05
+
 def diffImg(t0, t1, t2):
   d1 = cv2.absdiff(t2, t1)
   return d1
@@ -8,7 +12,7 @@ def diffImg(t0, t1, t2):
   return cv2.bitwise_and(d1, d2)
 
 
-cam = cv2.VideoCapture('/Users/rantav/dev/iter5/data/movies/1.mov')
+cam = cv2.VideoCapture('/Users/rantav/dev/iter5/data/movies/0.mov')
 
 cv2.namedWindow("result")
 cv2.namedWindow("diff")
@@ -24,6 +28,10 @@ t_minus = cv2.cvtColor(cam.read()[1], cv2.COLOR_RGB2GRAY)
 t = cv2.cvtColor(cam.read()[1], cv2.COLOR_RGB2GRAY)
 t_plus = cv2.cvtColor(cam.read()[1], cv2.COLOR_RGB2GRAY)
 
+width, height = t.shape
+min_width = MIN_MOVING_OBJECT_SIZE_PERC * width
+min_height = height * MIN_MOVING_OBJECT_SIZE_PERC
+
 while True:
   diff = diffImg(t_minus, t, t_plus)
   ret, thresh = cv2.threshold(diff, 20, 255, 0)
@@ -36,11 +44,13 @@ while True:
     print len(contours)
     cnt = contours[i]
     x, y, w, h = cv2.boundingRect(cnt)
-    xmin = min(xmin, x)
-    ymin = min(ymin, y)
-    xmax = max(xmax, x + w)
-    ymax = max(ymax, y + h)
-  cv2.rectangle(t, (xmin, ymin), (xmax, ymax), (180, 200, 10), 2)
+    if w  >= min_width and h >= min_height:
+      xmin = min(xmin, x)
+      ymin = min(ymin, y)
+      xmax = max(xmax, x + w)
+      ymax = max(ymax, y + h)
+  if xmax > 0 and ymax > 0:
+    cv2.rectangle(t, (xmin, ymin), (xmax, ymax), (180, 200, 10), 2)
   cv2.imshow("result", t)
   # cv2.imshow('diff', diff)
   # cv2.imshow('t_minus', t_minus)
