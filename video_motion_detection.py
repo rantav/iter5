@@ -5,40 +5,33 @@ import numpy as np
 # The number is a fraction of width or height
 MIN_MOVING_OBJECT_SIZE_PERC = 0.05
 
-def diffImg(t0, t1, t2):
-  d1 = cv2.absdiff(t2, t1)
-  return d1
-  d2 = cv2.absdiff(t1, t0)
-  return cv2.bitwise_and(d1, d2)
-
-
-cam = cv2.VideoCapture('/Users/rantav/dev/iter5/data/movies/0.mov')
+cam = cv2.VideoCapture('/Users/rantav/dev/iter5/data/movies/1.mov')
 
 cv2.namedWindow("result")
-cv2.namedWindow("diff")
-cv2.namedWindow("t")
-cv2.namedWindow("t_minus")
-cv2.namedWindow("t_plus")
-cv2.namedWindow("thresh")
 
-kernel = np.ones((5,5),np.uint8)
+kernel = np.ones((5, 5), np.uint8)
 
-# Read three images first:
-t_minus = cv2.cvtColor(cam.read()[1], cv2.COLOR_RGB2GRAY)
-t = cv2.cvtColor(cam.read()[1], cv2.COLOR_RGB2GRAY)
-t_plus = cv2.cvtColor(cam.read()[1], cv2.COLOR_RGB2GRAY)
+def get_frame(cam):
+  frame = cam.read()[1]
+  frame_bw = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+  frame_bw = cv2.GaussianBlur(frame_bw, (5,5), 0)
+  return frame, frame_bw
 
-width, height = t.shape
-min_width = MIN_MOVING_OBJECT_SIZE_PERC * width
+_, prev_frame_bw = get_frame(cam)
+frame, frame_bw = get_frame(cam)
+
+width, height = frame_bw.shape
+min_width = width * MIN_MOVING_OBJECT_SIZE_PERC
 min_height = height * MIN_MOVING_OBJECT_SIZE_PERC
 
 while True:
-  diff = diffImg(t_minus, t, t_plus)
+  diff = cv2.absdiff(frame_bw, prev_frame_bw)
   ret, thresh = cv2.threshold(diff, 20, 255, 0)
-  closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-  image, contours, hierarchy = cv2.findContours(closing, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+  closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+  image, contours, hierarchy = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
   # with_contours = cv2.drawContours(t, contours, -1, (0,255,0), 3)
-  xmin = ymin = 100000
+  xmin = width
+  ymin = height
   xmax = ymax = 0
   for i in range(0, len(contours)):
     print len(contours)
@@ -50,18 +43,12 @@ while True:
       xmax = max(xmax, x + w)
       ymax = max(ymax, y + h)
   if xmax > 0 and ymax > 0:
-    cv2.rectangle(t, (xmin, ymin), (xmax, ymax), (180, 200, 10), 2)
-  cv2.imshow("result", t)
-  # cv2.imshow('diff', diff)
-  # cv2.imshow('t_minus', t_minus)
-  # cv2.imshow('t_plus', t_plus)
-  # cv2.imshow('thresh', thresh)
+    cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (180, 200, 10), 2)
+  cv2.imshow("result", frame)
 
   # Read next image
-  t_minus = t
-  t = t_plus
-  t_plus = cv2.cvtColor(cam.read()[1], cv2.COLOR_RGB2GRAY)
-  t_plus = cv2.GaussianBlur(t_plus, (5,5), 0)
+  prev_frame_bw = frame_bw
+  frame, frame_bw = get_frame(cam)
 
   key = cv2.waitKey(10)
   if key == 27:
