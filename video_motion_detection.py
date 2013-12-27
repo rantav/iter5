@@ -8,11 +8,17 @@ import shutil
 MIN_MOVING_OBJECT_SIZE_PERC = 0.05
 IMAGE_OUTPUT_INTERVAL_FRAMES = 30
 
+
+def mk_clean_dir(path):
+  if os.path.exists(path):
+    shutil.rmtree(path)
+  os.makedirs(path)
+
 movie_id = '1'
 cam = cv2.VideoCapture('/Users/rantav/dev/iter5/data/movies/%s.mov' % movie_id)
 output_folder = '/Users/rantav/dev/iter5/data/output/%s' % movie_id
-shutil.rmtree(output_folder)
-os.makedirs(output_folder)
+mk_clean_dir(output_folder)
+
 frame_id = 0
 
 
@@ -60,7 +66,7 @@ while True:
     cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (180, 200, 10), 2)
     # write an image
     if frame_id - last_image > IMAGE_OUTPUT_INTERVAL_FRAMES:
-      file_name = os.path.join(output_folder, '%d.png' % frame_id)
+      file_name = os.path.join(output_folder, '%d.jpg' % frame_id)
       cv2.imwrite(file_name, frame)
       last_image = frame_id
   cv2.imshow("result", frame)
